@@ -1,0 +1,29 @@
+{
+    "name": "data-dog/php-nsq",
+    "description": "NSQ publisher for PHP",
+    "type": "library",
+    "keywords": [
+        "nsq", "publisher", "pub"
+    ],
+    "homepage": "https://github.com/DATA-DOG/php-nsq",
+
+    "require": {
+        "php": ">=5.3.0",
+
+        "ext-sockets": "*"
+    },
+
+    "require-dev": {
+        "phpspec/phpspec": "~2.0"
+    },
+
+    "config": {
+        "bin-dir": "bin"
+    },
+
+    "autoload": {
+        "psr-0": {
+            "Nsq\\": "src/"
+        }
+    }
+}
