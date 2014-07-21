@@ -2,28 +2,31 @@
 
 namespace Nsq\Socket;
 
+use Nsq\Message\MessageInterface;
+
 interface SocketInterface
 {
-    /**
-     * Writes data.
-     *
-     * @param string $data
-     * @return void
-     */
-    function write($data);
+    const NSQ_V2 = "  V2";
+
+    const NSQ_RESPONSE = 0;
+    const NSQ_ERROR = 1;
+    const NSQ_MESSAGE = 2;
 
     /**
-     * Reads up to $length bytes.
+     * Publish a message to NSQ
      *
-     * @return string
+     * @param string $topic
+     * @param \Nsq\MessageInterface $msg
+     * @return \Nsq\Response
      */
-    function read($length);
+    function publish($topic, MessageInterface $msg);
 
     /**
-     * Reads up to the next new-line, or $length - 1 bytes.
-     * Trailing whitespace is trimmed.
+     * Publish multiple messages to NSQ
      *
-     * @param string
+     * @param string $topic
+     * @param array $msgs - elements are instance of \Nsq\Message\MessageInterface
+     * @return \Nsq\Response
      */
-    function readLine($length = null);
+    function mpublish($topic, array $msgs);
 }

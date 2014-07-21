@@ -3,6 +3,8 @@
 namespace Nsq\Socket;
 
 use Nsq\Exception\SocketException;
+use Nsq\Response;
+use Nsq\Message\MessageInterface;
 
 class PhpSocket implements SocketInterface
 {
@@ -55,6 +57,8 @@ class PhpSocket implements SocketInterface
         if (@socket_set_option($this->socket, SOL_SOCKET, SO_RCVTIMEO, $timeout) === false) {
             $this->error("Failed to set socket stream timeout option");
         }
+        // must send a protocol version
+        $this->write(self::NSQ_V2);
     }
 
     /**
@@ -72,7 +76,39 @@ class PhpSocket implements SocketInterface
     /**
      * {@inheritDoc}
      */
-    public function write($data)
+    public function publish($topic, MessageInterface $msg)
+    {
+        $msg = $msg->payload();
+        $cmd = sprintf("PUB %s\n%s%s", $topic, pack('N', strlen($msg)), $msg);
+        $this->write($cmd);
+        return $this->response();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function mpublish($topic, array $msgs)
+    {
+        if (!count($msgs)) {
+            throw new \InvalidArgumentException("Expecting at least one message to publish.");
+        }
+        $cmd = sprintf("MPUB %s\n%s", $topic, pack('N', count($msgs)));
+        foreach ($msgs as $msg) {
+            $msg = $msg->payload();
+            $cmd .= pack('N', strlen($msg));
+            $cmd .= $msg;
+        }
+        $this->write($cmd);
+        return $this->response();
+    }
+
+    /**
+     * Writes data.
+     *
+     * @param string $data
+     * @return void
+     */
+    private function write($data)
     {
         for ($written = 0, $fwrite = 0; $written < strlen($data); $written += $fwrite) {
             $fwrite = @socket_write($this->socket, substr($data, $written));
@@ -83,9 +119,11 @@ class PhpSocket implements SocketInterface
     }
 
     /**
-     * {@inheritDoc}
+     * Reads up to $length bytes.
+     *
+     * @return string
      */
-    public function read($length)
+    private function read($length)
     {
         $read = 0;
         $parts = [];
@@ -105,15 +143,52 @@ class PhpSocket implements SocketInterface
     /**
      * {@inheritDoc}
      */
-    public function readLine($length = null)
+    private function response()
     {
-        $data = @socket_read($this->socket, $length ?: 2056, PHP_NORMAL_READ);
-        if ($data === false) {
-            $this->error("Failed to read data line from socket");
+        $len = $this->readInt();
+        if ($len <= 0) {
+            throw new SocketException("Failed to read response, length is: {$len}");
         }
-        // read CRLF
-        @socket_read($this->socket, 32, PHP_NORMAL_READ);
-        return rtrim($data);
+        // read frame type
+        switch ($this->readInt()) {
+            case self::NSQ_RESPONSE:
+            case self::NSQ_ERROR:
+                return new Response($this->readString($len - 4));
+            default:
+                throw new SocketException("Unsupported NSQ response frame type: {$type}");
+        }
+    }
+
+    /**
+     * Read a length and unpack binary data
+     *
+     * @param integer $len
+     * @return string - trimmed
+     */
+    private function readString($len)
+    {
+        $data = unpack("c{$len}chars", $this->read($len));
+        $ret = "";
+        foreach($data as $c) {
+            if ($c > 0) {
+                $ret .= chr($c);
+            }
+        }
+        return trim($ret);
+    }
+
+    /**
+     * Read and unpack integer (4 bytes)
+     *
+     * @return integer
+     */
+    private function readInt()
+    {
+        list(,$res) = unpack('N', $this->read(4));
+        if (PHP_INT_SIZE !== 4) {
+            $res = sprintf("%u", $res);
+        }
+        return intval($res);
     }
 
     /**
@@ -126,7 +201,7 @@ class PhpSocket implements SocketInterface
     private function error($msg)
     {
         $errmsg = @socket_strerror($errno = socket_last_error($this->socket));
-        throw new SocketException($errno, "{$errmsg} -> {$msg}");
+        throw new SocketException("{$errmsg} -> {$msg}", $errno);
     }
 }
 
