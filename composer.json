@@ -2,6 +2,7 @@
     "name": "data-dog/php-nsq",
     "description": "NSQ publisher for PHP",
     "type": "library",
+    "license": "MIT",
     "keywords": [
         "nsq", "publisher", "pub"
     ],
