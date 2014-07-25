@@ -29,4 +29,12 @@ interface SocketInterface
      * @return \Nsq\Response
      */
     function mpublish($topic, array $msgs);
+
+    /**
+     * Get string representation
+     *
+     * @return string
+     */
+    function __toString();
 }
+

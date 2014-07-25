@@ -94,6 +94,10 @@ class NsqPool
     protected function doPublish($topic, array $msgs, $strategy)
     {
         $success = 0;
+        $errs = array();
+        if (count($this->connections) === 0) {
+            $errs[] = "There are no NSQ connections in the pool.";
+        }
         foreach ($this->connections as $connection) {
             try {
                 if (count($msgs) > 1) {
@@ -104,11 +108,13 @@ class NsqPool
                 if ($response->isOk()) {
                     $success++;
                 }
+                $errs[] = "{$connection} -> {$response->code()}";
                 if (self::NSQ_ONLY_ONE === $strategy && $success === 1) {
                     return; // one node has received a message
                 }
             } catch(SocketException $e) {
                 // do nothing here, does not increment success count
+                $errs[] = "{$connection} -> has failed with socket exception: {$e->getMessage()}.";
             }
         }
         if ($strategy === self::NSQ_QUORUM) {
@@ -119,7 +125,8 @@ class NsqPool
             $required = 1; // defaults to at least one
         }
         if ($required > $success) {
-            throw new PubException("Required {$required} nodes to be successful, but only {$success} were.");
+            throw new PubException("Required at least {$required} nodes to be successful, but only {$success} were, details:\n\t".implode("\n\t", $errs));
         }
     }
 }
+

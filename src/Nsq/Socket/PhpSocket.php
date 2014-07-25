@@ -19,6 +19,20 @@ class PhpSocket implements SocketInterface
     const SOCKET_TIMEOUT_S = 0;
 
     /**
+     * Host of socket
+     *
+     * @var string
+     */
+    private $host;
+
+    /**
+     * Port of socket
+     *
+     * @var int
+     */
+    private $port;
+
+    /**
      * Socket
      *
      * @var resource
@@ -45,6 +59,9 @@ class PhpSocket implements SocketInterface
      */
     public function __construct($host, $port = 4150, array $timeout = array())
     {
+        $this->host = $host;
+        $this->port = $port;
+
         // see http://www.php.net/manual/en/function.socket-create.php
         $this->socket = @socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
         if ($this->socket === false) {
@@ -100,6 +117,14 @@ class PhpSocket implements SocketInterface
         }
         $this->write($cmd);
         return $this->response();
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    public function __toString()
+    {
+        return "{$this->host}:{$this->port}";
     }
 
     /**
@@ -204,4 +229,5 @@ class PhpSocket implements SocketInterface
         throw new SocketException("{$errmsg} -> {$msg}", $errno);
     }
 }
+
 
