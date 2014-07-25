@@ -119,7 +119,7 @@ class NsqPool
             $required = 1; // defaults to at least one
         }
         if ($required > $success) {
-            throw new PubException("Required at leat {$required} nodes to be successful, but only {$success} were.");
+            throw new PubException("Required {$required} nodes to be successful, but only {$success} were.");
         }
     }
 }

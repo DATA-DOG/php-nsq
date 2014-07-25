@@ -150,7 +150,7 @@ class PhpSocket implements SocketInterface
             throw new SocketException("Failed to read response, length is: {$len}");
         }
         // read frame type
-        switch ($this->readInt()) {
+        switch ($type = $this->readInt()) {
             case self::NSQ_RESPONSE:
             case self::NSQ_ERROR:
                 return new Response($this->readString($len - 4));
