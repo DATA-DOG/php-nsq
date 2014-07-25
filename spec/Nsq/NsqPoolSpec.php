@@ -18,12 +18,15 @@ class NsqPoolSpec extends ObjectBehavior
         Response $failed,
         Response $success
     ) {
+        $conn1->__toString()->willReturn('conn1');
+        $conn2->__toString()->willReturn('conn2');
         $this->beConstructedWith($conn1, $conn2);
 
         $failed->isOk()->willReturn(false);
         $failed->code()->willReturn('E_FAILED');
 
         $success->isOk()->willReturn(true);
+        $success->code()->willReturn('OK');
     }
 
     function it_is_initializable()
